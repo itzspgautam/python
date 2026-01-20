@@ -8,8 +8,8 @@ It includes basic programs and practice exercises related to Python programming.
 ## 👨‍🎓 Student Information
 
 - **Name:** Suraj Prakash Gautam  
-- **University:** Birsa University Institute of Technology (BUIT)  
-- **Location:** Nesra, Ranchi  
+- **University:** Birla Institute of Technology (BIT)  
+- **Location:** Mesra, Ranchi  
 - **Course:** Master of Computer Applications (MCA)  
 - **Semester:** 2nd Semester  
 - **Subject:** IT Tools and Techniques  
