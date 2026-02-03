@@ -48,7 +48,7 @@ while True:
                 
         case 5:
             print("Existing program. All data will be lost.")
-            break;
+            break
             
         case _: 
             print("Invalid choice..")
