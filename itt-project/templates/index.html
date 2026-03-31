@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Sleep & GPA Analysis</title>
+    <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #f5f5f5;
+            color: #1a1a1a;
+            min-height: 100vh;
+        }
+
+        /* ── Header ── */
+        header {
+            background: #1a1a1a;
+            color: white;
+            padding: 24px 40px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        header h1 { font-size: 1.25rem; font-weight: 600; letter-spacing: -0.02em; }
+        header p  { font-size: 0.8rem; color: #888; margin-top: 2px; }
+
+        /* ── Nav ── */
+        nav {
+            background: white;
+            border-bottom: 1px solid #e5e5e5;
+            display: flex;
+            gap: 0;
+            padding: 0 40px;
+        }
+        nav button {
+            background: none;
+            border: none;
+            border-bottom: 3px solid transparent;
+            padding: 14px 20px;
+            font-size: 0.85rem;
+            font-weight: 500;
+            color: #666;
+            cursor: pointer;
+            transition: all 0.15s;
+            font-family: 'Inter', sans-serif;
+        }
+        nav button:hover { color: #1a1a1a; }
+        nav button.active { color: #1a1a1a; border-bottom-color: #1a1a1a; }
+
+        /* ── Layout ── */
+        main { max-width: 1100px; margin: 0 auto; padding: 32px 24px; }
+
+        .section { display: none; }
+        .section.active { display: block; }
+
+        /* ── Card ── */
+        .card {
+            background: white;
+            border: 1px solid #e5e5e5;
+            border-radius: 8px;
+            padding: 24px;
+            margin-bottom: 20px;
+        }
+        .card-title {
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: #888;
+            margin-bottom: 16px;
+        }
+
+        /* ── Table ── */
+        .table-wrap { overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
+        thead th {
+            text-align: left;
+            padding: 8px 12px;
+            background: #f5f5f5;
+            color: #555;
+            font-weight: 600;
+            font-size: 0.75rem;
+            border-bottom: 1px solid #e5e5e5;
+            white-space: nowrap;
+        }
+        tbody td {
+            padding: 8px 12px;
+            border-bottom: 1px solid #f0f0f0;
+            color: #333;
+        }
+        tbody tr:last-child td { border-bottom: none; }
+        tbody tr:hover td { background: #fafafa; }
+
+        /* ── Predict ── */
+        .predict-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        @media (max-width: 700px) { .predict-grid { grid-template-columns: 1fr; } }
+
+        .slider-row { margin-bottom: 20px; }
+        .slider-label {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 6px;
+        }
+        .slider-label span:first-child { font-size: 0.82rem; font-weight: 500; color: #333; }
+        .slider-label span:last-child  { font-size: 0.82rem; font-weight: 600; color: #1a1a1a; }
+        input[type="range"] {
+            width: 100%;
+            height: 4px;
+            appearance: none;
+            background: #e5e5e5;
+            border-radius: 4px;
+            outline: none;
+            cursor: pointer;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            appearance: none;
+            width: 16px;
+            height: 16px;
+            background: #1a1a1a;
+            border-radius: 50%;
+        }
+
+        .result-box {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid #e5e5e5;
+            border-radius: 8px;
+            background: #fafafa;
+            min-height: 260px;
+        }
+        .result-number {
+            font-size: 6rem;
+            font-weight: 700;
+            color: #1a1a1a;
+            letter-spacing: -0.04em;
+            line-height: 1;
+        }
+        .result-label { font-size: 0.75rem; color: #888; margin-top: 8px; text-transform: uppercase; letter-spacing: 0.08em; }
+
+        .btn-predict {
+            width: 100%;
+            padding: 14px;
+            margin-top: 20px;
+            background: #1a1a1a;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: opacity 0.15s;
+            font-family: 'Inter', sans-serif;
+        }
+        .btn-predict:hover { opacity: 0.85; }
+
+        /* ── Plots grid ── */
+        .plots-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        .plots-grid .full-width { grid-column: 1 / -1; }
+        @media (max-width: 700px) { .plots-grid { grid-template-columns: 1fr; } }
+        .plot-box { height: 340px; }
+        .plot-box.tall { height: 420px; }
+
+        /* ── Team ── */
+        .team-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            gap: 16px;
+        }
+        .team-card {
+            background: white;
+            border: 1px solid #e5e5e5;
+            border-radius: 8px;
+            padding: 20px;
+            text-align: center;
+        }
+        .team-avatar {
+            width: 52px; height: 52px;
+            border-radius: 50%;
+            background: #1a1a1a;
+            color: white;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.1rem;
+            font-weight: 700;
+            margin: 0 auto 12px;
+        }
+        .team-name { font-size: 0.88rem; font-weight: 600; color: #1a1a1a; }
+        .team-roll { font-size: 0.75rem; color: #888; margin-top: 4px; }
+
+        /* ── Section header ── */
+        .sec-header { font-size: 1rem; font-weight: 600; color: #1a1a1a; margin-bottom: 20px; }
+    </style>
+</head>
+<body>
+
+<header>
+    <div>
+        <h1>Student Sleep & GPA Analysis</h1>
+        <p>ITT Project · Sleep Pattern Dataset</p>
+    </div>
+</header>
+
+<nav>
+    <button class="active" onclick="switchTab('data',this)">Data Explorer</button>
+    <button onclick="switchTab('predict',this)">GPA Predictor</button>
+    <button onclick="switchTab('charts',this)">Charts</button>
+    <button onclick="switchTab('team',this)">Team</button>
+</nav>
+
+<main>
+
+    <!-- ── TAB 1: DATA ── -->
+    <div id="sec-data" class="section active">
+        <div class="card">
+            <div class="card-title">df.head() — First 5 Rows</div>
+            <div class="table-wrap">
+                <table>
+                    <thead><tr id="head-hdr"></tr></thead>
+                    <tbody id="head-body"></tbody>
+                </table>
+            </div>
+        </div>
+        <div class="card">
+            <div class="card-title">df.describe() — Summary Statistics</div>
+            <div class="table-wrap">
+                <table>
+                    <thead><tr id="stat-hdr"></tr></thead>
+                    <tbody id="stat-body"></tbody>
+                </table>
+            </div>
+        </div>
+        <div class="card">
+            <div class="card-title">df.dtypes — Column Info</div>
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Column</th>
+                            <th>Type</th>
+                        </tr>
+                    </thead>
+                    <tbody id="info-body"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── TAB 2: PREDICT ── -->
+    <div id="sec-predict" class="section">
+        <div class="predict-grid">
+            <div class="card">
+                <div class="card-title">Adjust Habits</div>
+
+                <div class="slider-row">
+                    <div class="slider-label"><span>Study Hours / Day</span><span id="lbl-study">8h</span></div>
+                    <input type="range" id="study" min="0" max="15" value="8" step="1" oninput="upd('study',this.value,'h')">
+                </div>
+                <div class="slider-row">
+                    <div class="slider-label"><span>Sleep Duration / Night</span><span id="lbl-sleep">7h</span></div>
+                    <input type="range" id="sleep" min="4" max="12" value="7" step="1" oninput="upd('sleep',this.value,'h')">
+                </div>
+                <div class="slider-row">
+                    <div class="slider-label"><span>Screen Time / Day</span><span id="lbl-screen">3h</span></div>
+                    <input type="range" id="screen" min="0" max="12" value="3" step="1" oninput="upd('screen',this.value,'h')">
+                </div>
+                <div class="slider-row">
+                    <div class="slider-label"><span>Physical Activity (min)</span><span id="lbl-physical">45m</span></div>
+                    <input type="range" id="physical" min="0" max="120" value="45" step="5" oninput="upd('physical',this.value,'m')">
+                </div>
+                <div class="slider-row">
+                    <div class="slider-label"><span>Sleep Quality (1–10)</span><span id="lbl-quality">7</span></div>
+                    <input type="range" id="quality" min="1" max="10" value="7" step="1" oninput="upd('quality',this.value,'')">
+                </div>
+
+                <button class="btn-predict" id="btn-pred" onclick="predict()">Predict GPA</button>
+            </div>
+
+            <div class="result-box">
+                <div class="result-number" id="result">--</div>
+                <div class="result-label">Predicted GPA (out of 10)</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── TAB 3: CHARTS ── -->
+    <div id="sec-charts" class="section">
+        <div class="plots-grid">
+            <div class="card full-width">
+                <div class="card-title">Students by Grade &amp; Gender</div>
+                <div class="plot-box tall" id="plot-grade-gender"></div>
+            </div>
+            <div class="card">
+                <div class="card-title">Gender Distribution</div>
+                <div class="plot-box" id="plot-gender"></div>
+            </div>
+            <div class="card">
+                <div class="card-title">Habit Importance for GPA</div>
+                <div class="plot-box" id="plot-importance"></div>
+            </div>
+            <div class="card full-width">
+                <div class="card-title">Correlation Heatmap</div>
+                <div class="plot-box tall" id="plot-heatmap"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── TAB 4: TEAM ── -->
+    <div id="sec-team" class="section">
+        <div class="card">
+            <div class="card-title">Project Team</div>
+            <div class="team-grid">
+                <div class="team-card">
+                    <div class="team-avatar">SG</div>
+                    <div class="team-name">Suraj Prakash Gautam</div>
+                    <div class="team-roll">MCA/10011/25</div>
+                </div>
+                <div class="team-card">
+                    <div class="team-avatar">RH</div>
+                    <div class="team-name">Ram Hembrom</div>
+                    <div class="team-roll">MCA/10051/25</div>
+                </div>
+                <div class="team-card">
+                    <div class="team-avatar">HM</div>
+                    <div class="team-name">Hash Malakar</div>
+                    <div class="team-roll">MCA/10010/25</div>
+                </div>
+                <div class="team-card">
+                    <div class="team-avatar">KK</div>
+                    <div class="team-name">Krishu Kumar</div>
+                    <div class="team-roll">MCA/10014/25</div>
+                </div>
+                <div class="team-card">
+                    <div class="team-avatar">RR</div>
+                    <div class="team-name">Raj Ranjan</div>
+                    <div class="team-roll">MCA/10072/25</div>
+                </div>
+            </div>
+        </div>
+        <div class="card" style="margin-top:0">
+            <div class="card-title">About the Project</div>
+            <p style="font-size:0.85rem;color:#555;line-height:1.7">
+                This project analyses the relationship between student sleep patterns and academic performance (CGPA).
+                Using a real-world dataset of university students, we apply exploratory data analysis and a 
+                Linear Regression model to predict GPA based on daily habits such as study hours, sleep duration,
+                physical activity, screen time, and sleep quality.
+            </p>
+        </div>
+    </div>
+
+</main>
+
+<script>
+    // ── Tab switching ──
+    let chartsLoaded = false;
+    function switchTab(name, btn) {
+        document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+        document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
+        document.getElementById('sec-' + name).classList.add('active');
+        btn.classList.add('active');
+        if (name === 'charts' && !chartsLoaded) { loadCharts(); chartsLoaded = true; }
+    }
+
+    // ── Data tab ──
+    async function loadData() {
+        const res = await fetch('/explore');
+        const d = await res.json();
+
+        // head
+        const hKeys = Object.keys(d.head[0]);
+        document.getElementById('head-hdr').innerHTML = hKeys.map(k => `<th>${k}</th>`).join('');
+        document.getElementById('head-body').innerHTML = d.head.map(r =>
+            `<tr>${hKeys.map(k => `<td>${r[k]}</td>`).join('')}</tr>`
+        ).join('');
+
+        // describe
+        const sKeys = Object.keys(d.describe[0]);
+        document.getElementById('stat-hdr').innerHTML = sKeys.map(k => `<th>${k}</th>`).join('');
+        document.getElementById('stat-body').innerHTML = d.describe.map(r =>
+            `<tr>${sKeys.map(k => `<td>${r[k]}</td>`).join('')}</tr>`
+        ).join('');
+
+        // info
+        document.getElementById('info-body').innerHTML = d.info.map(r =>
+            `<tr><td>${r.column}</td><td><code style="font-size:0.75rem;color:#555">${r.type}</code></td></tr>`
+        ).join('');
+    }
+
+    // ── Predict tab ──
+    function upd(id, val, suffix) {
+        document.getElementById('lbl-' + id).textContent = val + suffix;
+    }
+
+    async function predict() {
+        const btn = document.getElementById('btn-pred');
+        btn.textContent = 'Calculating…';
+        btn.disabled = true;
+        const body = {
+            study:    document.getElementById('study').value,
+            sleep:    document.getElementById('sleep').value,
+            screen:   document.getElementById('screen').value,
+            physical: document.getElementById('physical').value,
+            quality:  document.getElementById('quality').value
+        };
+        try {
+            const res = await fetch('/predict', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(body) });
+            const json = await res.json();
+            document.getElementById('result').textContent = json.prediction ?? 'Err';
+        } catch(e) {
+            document.getElementById('result').textContent = 'Err';
+        }
+        btn.textContent = 'Predict GPA';
+        btn.disabled = false;
+    }
+
+    // ── Charts tab ──
+    async function loadCharts() {
+        const res = await fetch('/analytics');
+        const d = await res.json();
+        const font = { family: 'Inter', size: 12, color: '#555' };
+        const cfg  = { displayModeBar: false, responsive: true };
+        const margin = { t: 10, b: 40, l: 60, r: 20 };
+
+        // Grade-gender bar
+        Plotly.newPlot('plot-grade-gender', [
+            { x: d.grade_gender.labels, y: d.grade_gender.female, name: 'Female', type: 'bar', marker: { color: '#f9a8d4' } },
+            { x: d.grade_gender.labels, y: d.grade_gender.male,   name: 'Male',   type: 'bar', marker: { color: '#93c5fd' } }
+        ], { barmode: 'group', margin, font, xaxis:{title:'Grade'}, yaxis:{title:'Students'} }, cfg);
+
+        // Gender pie
+        Plotly.newPlot('plot-gender', [{
+            labels: d.gender_dist.labels,
+            values: d.gender_dist.values,
+            type: 'pie',
+            marker: { colors: ['#f9a8d4', '#93c5fd'] },
+            hole: 0.4
+        }], { margin: {t:10,b:10,l:10,r:10}, font }, cfg);
+
+        // Importance horizontal bar
+        Plotly.newPlot('plot-importance', [{
+            x: d.importance.values,
+            y: d.importance.labels,
+            orientation: 'h',
+            type: 'bar',
+            marker: { color: '#1a1a1a' }
+        }], { margin: { t:10, b:30, l:140, r:20 }, font }, cfg);
+
+        // Heatmap
+        Plotly.newPlot('plot-heatmap', [{
+            z: d.heatmap.z,
+            x: d.heatmap.labels,
+            y: d.heatmap.labels,
+            type: 'heatmap',
+            colorscale: [[0,'#f5f5f5'],[1,'#1a1a1a']],
+            showscale: true
+        }], { margin: {t:10,b:80,l:120,r:20}, font }, cfg);
+    }
+
+    // ── Init ──
+    loadData();
+</script>
+</body>
+</html>
